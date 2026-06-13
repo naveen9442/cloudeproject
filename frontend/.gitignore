@@ -10,7 +10,6 @@ dist/
 
 # Angular
 .angular/
-angular.json
 
 # Environment
 .env
