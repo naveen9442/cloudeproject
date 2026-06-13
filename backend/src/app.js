@@ -8,6 +8,17 @@ const morgan = require('morgan');
 
 const productRoutes = require('./routes/productRoutes');
 const errorHandler = require('./middleware/errorHandler');
+const client = require('prom-client');
+
+// Collect default Prometheus metrics
+client.collectDefaultMetrics();
+
+// Define custom metrics
+const httpRequestsTotal = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code']
+});
 
 const app = express();
 
@@ -27,6 +38,30 @@ app.use(express.urlencoded({ extended: true }));
 
 // Logging Middleware
 app.use(morgan('combined'));
+
+// Middleware to track request counts
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    if (req.originalUrl !== '/metrics') {
+      httpRequestsTotal.inc({
+        method: req.method,
+        route: req.route ? req.route.path : req.originalUrl,
+        status_code: res.statusCode
+      });
+    }
+  });
+  next();
+});
+
+// Prometheus metrics endpoint
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', client.register.contentType);
+    res.end(await client.register.metrics());
+  } catch (err) {
+    res.status(500).end(err);
+  }
+});
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {

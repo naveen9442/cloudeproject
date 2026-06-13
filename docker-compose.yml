@@ -69,6 +69,62 @@ services:
       retries: 3
       start_period: 40s
 
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fullstack-prometheus
+    volumes:
+      - ./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - fullstack-network
+    depends_on:
+      - backend
+
+  # Loki (Log Aggregation)
+  loki:
+    image: grafana/loki:latest
+    container_name: fullstack-loki
+    volumes:
+      - ./deploy/monitoring/loki-config.yml:/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - fullstack-network
+
+  # Promtail (Log Collector)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: fullstack-promtail
+    volumes:
+      - ./deploy/monitoring/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - fullstack-network
+    depends_on:
+      - loki
+
+  # Grafana (Visualization Dashboard)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fullstack-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - fullstack-network
+    depends_on:
+      - prometheus
+      - loki
+
 networks:
   fullstack-network:
     driver: bridge
@@ -77,4 +133,8 @@ volumes:
   mongodb_data:
     driver: local
   mongodb_config:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local
