@@ -17,8 +17,8 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "✗ Docker Compose is not installed. Please install Docker Compose first."
+if ! docker compose version >/dev/null 2>&1; then
+    echo "✗ Docker Compose is not installed."
     exit 1
 fi
 
@@ -36,15 +36,15 @@ fi
 # Stop existing containers
 echo "Stopping existing containers..."
 cd $APP_DIR
-docker-compose down || true
+docker compose down || true
 
 # Check if images need to be rebuilt
 echo "Building Docker images..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Start containers
 echo "Starting containers..."
-docker-compose up -d
+docker compose up -d
 
 # Wait for services to be healthy
 echo "Waiting for services to be healthy..."
@@ -52,7 +52,7 @@ sleep 20
 
 # Check health
 echo "Checking service health..."
-docker-compose ps
+docker compose ps
 
 # Display service information
 echo ""
@@ -70,10 +70,10 @@ echo "  • Username: admin"
 echo "  • Password: password123"
 echo ""
 echo "Useful commands:"
-echo "  View logs:     docker-compose logs -f"
-echo "  View services: docker-compose ps"
-echo "  Stop services: docker-compose down"
-echo "  Remove data:   docker-compose down -v"
+echo "  View logs:     docker compose logs -f"
+echo "  View services: docker compose ps"
+echo "  Stop services: docker compose down"
+echo "  Remove data:   docker compose down -v"
 echo ""
 
 # Try to open in browser
